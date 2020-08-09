@@ -1,0 +1,2 @@
+#! /bin/sh
+du -sb *.h *.c | grep -Eo '[0-9]+' | awk '{ SUM += $1} END { print SUM }'

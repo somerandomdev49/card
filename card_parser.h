@@ -14,7 +14,8 @@ typedef struct Token { int type; const char *val; } Token;
 typedef struct { char *input; } Tokenizer;
 enum
 {
-	TT_VAR, TT_NUM, TT_EOF, TT_ERR
+	TT_VAR, TT_NUM, TT_EOF, TT_ERR,
+	TT_OP, TT_CP, TT_EQ
 };
 
 Token next_token(Tokenizer *t)
@@ -27,16 +28,35 @@ Token next_token(Tokenizer *t)
 		size_t start = t->input;
 		while((!IS_EOF(*t->input)) && (isalnum(*t->input) || *t->input == '_')) ++t->input;
 		size_t len = t->input - start;
-		LOGF("len: %d", len);
-		LOGF(" %s ", t->input-len);
-		LOGC('\\');for(int i=0;i<len;++i)LOGC('_');LOG("/");
+		// LOGF("len: %d", len);
+		// LOGF(" %s ", t->input-len);
+		// LOGC('\\');for(int i=0;i<len;++i)LOGC('_');LOG("/");
 		char *s = malloc(len + 1);
 		memcpy(s, t->input - len, len);
 		s[len] = 0;
-		LOGF("'%s'\n\n", s);
-		LOGF("-> '%s' ->\n", t->input);
+		// LOGF("'%s'\n\n", s);
+		// LOGF("-> '%s' ->\n", t->input);
 		return (Token){TT_VAR, s};
 	}
+
+	if((!IS_EOF(*t->input)) && isdigit(*t->input))
+	{
+		size_t start = t->input;
+		while((!IS_EOF(*t->input)) && (isdigit(*t->input) || *t->input == '_')) ++t->input;
+
+		if(*t->input == '.')
+			while((!IS_EOF(*t->input)) && (isdigit(*t->input) || *t->input == '_')) ++t->input;
+
+		size_t len = t->input - start;
+		char *s = malloc(len + 1);
+		memcpy(s, t->input - len, len);
+		s[len] = 0;
+		return (Token){TT_NUM, s};
+	}
+
+	if((!IS_EOF(*t->input)) && *t->input == '(') {++t->input; return (Token){TT_OP, "("}; };
+	if((!IS_EOF(*t->input)) && *t->input == ')') {++t->input; return (Token){TT_CP, ")"}; };
+	if((!IS_EOF(*t->input)) && *t->input == '=') {++t->input; return (Token){TT_EQ, "="}; };
 }
 
 int all_tokens(Tokenizer *t, Token **toks)
@@ -47,6 +67,7 @@ int all_tokens(Tokenizer *t, Token **toks)
 	{
 		*toks = realloc(*toks, sizeof(Token) * ++len);
 		(*toks)[len-1] = next_token(t);
+		LOG("oof");
 	}
 	return len;
 }
