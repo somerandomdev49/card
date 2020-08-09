@@ -15,5 +15,3 @@ int main(int argc, char **argv)
 	free(input.list.data);
 	return 0;
 }
-
-// go rickroll yourself.
