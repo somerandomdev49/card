@@ -14,7 +14,7 @@ Value create_list(int length)
 	Value v;
 	v.type = 1;
 	v.list.len = length;
-	v.list.data = malloc(sizeof(Value*) * v.list.len);
+	v.list.data = malloc(sizeof(Value) * v.list.len);
 	return v;
 }
 
