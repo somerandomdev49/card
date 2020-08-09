@@ -12,6 +12,7 @@ int main(int argc, char **argv)
 	input.list.data[1] = create_number(5);
 	
 	eval(input, &c01);
+	free(input.list.data);
 	return 0;
 }
 
