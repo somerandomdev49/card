@@ -10,7 +10,6 @@ int main(int argc, char **argv)
 	Tokenizer t = (Tokenizer){str};
 	Token *toks;
 	int size = all_tokens(&t, &toks);
-	free(t.input);
 	
 	for(int i=0;i<size;i++)
 	{
