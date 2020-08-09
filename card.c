@@ -1,12 +1,21 @@
 #include "card.h"
 #include "card_stdlib.h"
-//#include "card_parser.h"
+#include "card_parser.h"
 
 int main(int argc, char **argv)
 {
-	//char str[strlen(src) + 1]; strcpy(str, " abc qwerty\0");
+	const char *src =  " abc qwerty\0";
+	char str[strlen(src) + 1]; strcpy(str, src);
 	
-	//printf("%s\n\n", next_token(str).val);
+	Tokenizer t = (Tokenizer){str};
+	Token *toks;
+	int size = all_tokens(&t, &toks);
+	free(t.input);
+	
+	for(int i=0;i<size;i++)
+	{
+		printf("'%s'\n", toks[i].val);
+	}
 	
 	Cell c01, c02;
 	c01	= create_cell(&card__add, &c02);
