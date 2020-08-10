@@ -43,8 +43,8 @@ int main(int argc, char **argv)
 	c02 = create_cell(&card__print, NULL);
 	
 	Value input = create_list(2);
-	*(input.list.data+0) = create_number(2);
-	*(input.list.data+1) = create_number(5);
+	input.list.data[0] = create_number(2);
+	input.list.data[1] = create_number(5);
 	
 	eval(input, &c01);
 	free(input.list.data);
