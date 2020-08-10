@@ -21,10 +21,10 @@ char *read(const char *filename)
 
 int main(int argc, char **argv)
 {
-	
+	if(argc < 2) ERROR("Usage:\n\tcard <filename>");
 	// const char *src =  " abc qwerty\0";
 	// char str[strlen(src) + 1]; strcpy(str, src);
-	char *str = read("./example.card");
+	char *str = read(argv[1]);
 	if(!str) ERROR("Could not read the file :(\n");
 	#if DEBUG
 	printf("%s", str);
