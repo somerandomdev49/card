@@ -3,8 +3,7 @@
 #include "card.h"
 Value card__print(Value v)
 {
-	if(v.type == 0) printf("%f\n", v.number);
-	if(v.type == 1) printf("[List]\n");
+	display_value(&v); putchar('\n');
 	return v; // look what i found:   \._./  \;-;/ \;o;/
 }
 

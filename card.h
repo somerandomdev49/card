@@ -4,10 +4,26 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#define ERROR(msg) { printf("[%s]: %s", __FUNCTION__, msg); exit(1); }
+#include "debug.h"
 
 typedef struct Value { int type; union { double number; struct { size_t len; struct Value *data; } list; }; } Value;
 typedef struct Cell { Value(*f)(Value); char is_c; Value c; struct Cell *next; } Cell;
+Value card__print(Value v);
+void display_value(Value *root)
+{
+	#if DEBUG
+	printf("%d: ", root->type);
+	#endif
+	if(root->type == 0)
+		printf("%f", root->number); 
+	if(root->type == 1)
+	{
+		putchar('(');
+		for(int i=0;i<root->list.len;++i) { display_value(&root->list.data[i]); putchar(' '); }
+		putchar(')');
+	}
+}
+
 
 Value create_list(int length)
 {
@@ -50,6 +66,13 @@ Cell create_const(Value v, Cell *next)
 	return c;
 }
 
-Value eval(Value v, Cell *cell) { if(cell->is_c) return cell->c; return cell->next? eval(cell->f(v), cell->next) : cell->f(v); }
+
+
+Value eval(Value v, Cell *cell)
+{
+	if(cell->is_c) return cell->next? eval(cell->c, cell->next) : cell->c;
+	LOGF("Cell function: %s", cell->f == &card__print ? "print" : "add")
+	return cell->next? eval(cell->f(v), cell->next) : cell->f(v);
+}
 
 #endif 

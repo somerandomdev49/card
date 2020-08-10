@@ -26,7 +26,9 @@ int main(int argc, char **argv)
 	// char str[strlen(src) + 1]; strcpy(str, src);
 	char *str = read("./example.card");
 	if(!str) ERROR("Could not read the file :(\n");
+	#if DEBUG
 	printf("%s", str);
+	#endif
 
 	Tokenizer t = (Tokenizer){str};
 	Token *toks;
@@ -34,18 +36,37 @@ int main(int argc, char **argv)
 	int size2 = size;
 	free(str);
 
+	#if DEBUG
 	for(int i=0;i<size;i++)
-		printf("'%s'\n", toks[i].val);
+		LOGF("'%s'", toks[i].val);
+	#endif
 
+	LOG("-=------------ PARSE ------------=-");
 	ParserCell *ps = parse(&size, &toks);
+	LOG_INDENT = 0;
 	toks -= size2 - 1;
+	LOG("-=------------ FREE TOKS ------------=-");
 	for(int i=0;i<size;i++) free(toks[i].val);
+	LOG("-=------------ DISPLAY ------------=-");
+	#if DEBUG
 	display_parser_cells(ps);
+	#endif
 
-	Cell *c = generate_cells(ps);
+	LOG("-=------------ GEN CELLS ------------=-");
+	Cell *c = generate_cells(ps->next);
+	LOG("-=------------ FREE PARSE ------------=-");
+	FILE *nullout = fopen("/dev/null", "w");
+	FILE *tmpout = stdout;
+	stdout = nullout;
 	free_parser_cells(ps);
+	stdout = tmpout;
 
-	eval(create_number(argc), c);
+	LOG("-=------------ DISPLAY ------------=-");
+	show_cells(c);
+	LOG("-=------------ EVAL ------------=-");
+	Value v = eval(create_number(argc), c);
+	// display_value(&v); putchar('\n');
+	LOG("-=------------ FREE ------------=-");
 	free_cells(c);
 	return 0;
 }

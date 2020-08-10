@@ -5,16 +5,13 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
-#define LOG(x) puts(x);
-#define LOGC(c) putc(c, stdout);
-#define LOGF(x, ...) printf(x "\n", __VA_ARGS__);
 #define IS_EOF(x) (x == 0 || x == EOF)
 
 typedef struct Token { int type; char *val; } Token;
 typedef struct ParserCell
 {
 	int type;
-	union { double number; char *name; struct { size_t len; struct ParserCell *data; } list; };
+	union { double number; char *name; struct { size_t len; struct ParserCell **data; } list; };
 	struct ParserCell *next;
 } ParserCell;
 typedef struct { char *input; } Tokenizer;
@@ -38,7 +35,7 @@ void free_parser_cells(ParserCell *root)
 		if(tmp->type == 0) free(tmp->name);
 		if(tmp->type == 2)
 		{
-			for(int i = 0; i < tmp->list.len; ++i) free_parser_cells(&tmp->list.data[i]);
+			for(int i = 0; i < tmp->list.len; ++i) free_parser_cells(tmp->list.data[i]);
 		}
 		LOG("done freeing info");
 		LOGF("tmp: 0x%x", tmp)
@@ -54,12 +51,12 @@ void display_parser_cell_value(ParserCell *root)
 	if(root->type == 0)
 		printf("'%s'", root->name);
 	if(root->type == 1)
-		printf("%d", root->number); 
+		printf("%f", root->number); 
 	if(root->type == 2)
 	{
-		LOGC("(\n");
-		for(int i=0;i<root->list.len;++i) display_parser_cell_value(&root->list.data[i]);
-		LOGC(")");
+		LOGNONL("(");
+		for(int i=0;i<root->list.len;++i) { display_parser_cell_value(root->list.data[i]); LOGC(' '); }
+		LOGNONL(")");
 	}
 }
 
@@ -69,6 +66,8 @@ void display_parser_cells(ParserCell *root)
 	int level = 0;
 	while(root != NULL)
 	{
+		for(int i=0;i<level;++i) LOGC(' ');
+		LOGF("root->next.ptr: 0x%x", root->next)
 		for(int i=0;i<level;++i) LOGC(' ');
 		display_parser_cell_value(root); LOGC('\n');
 		root = root->next;
@@ -90,43 +89,59 @@ Value generate_cell_value(ParserCell *ps)
 	if(ps->type == 2)
 	{
 		Value v = create_list(ps->list.len);
-		for(size_t i=0;i<ps->list.len;i++) v.list.data[i] = generate_cell_value(&ps->list.data[i]);
+		for(size_t i=0;i<ps->list.len;i++) v.list.data[i] = generate_cell_value(ps->list.data[i]);
 		return v;
 	}
 }
 
+void show_cells(Cell *r)
+{
+	#if DEBUG
+	LOG_GROUP_BEGIN_MSG("Cell:");
+	if(r->is_c) { LOGNONL("Constant "); display_value(&r->c); LOGC('\n'); }
+	else LOGF("Func: %s", r->f == &card__print ? "print" : "add");
+	LOG_GROUP_END_MSG("done");
+	#endif
+	if(r->next) show_cells(r->next);
+}
+
 Cell *generate_cells(ParserCell *r)
 {
+	LOG_GROUP_BEGIN_MSG("Gen:");
 	Cell *gen;
-	Cell *c = gen;
+	Cell **c = &gen;
 	while(r != NULL)
 	{
+		*c = malloc(sizeof(Cell));
+		LOG_GROUP_BEGIN_MSG("Gen Loop:");
 		if(r->type == 0)
 		{
-			if(strcmp(r->name, "print")) 
+			LOGF("name: %s", r->name);
+			if(strcmp(r->name, "print") == 0)
 			{
-				c = malloc(sizeof(Cell));
-				*c = create_cell(*card__print, NULL);
+				**c = create_cell(*card__print, NULL);
 			}
-			if(strcmp(r->name, "add")) 
+			if(strcmp(r->name, "add") == 0) 
 			{
-				c = malloc(sizeof(Cell));
-				*c = create_cell(*card__add, NULL);
+				**c = create_cell(*card__add, NULL);
 			}
 		}
 		if(r->type == 1)
 		{
-			c = malloc(sizeof(Cell));
-			*c = create_const(generate_cell_value(r), NULL);
+			LOG("number");
+			**c = create_const(generate_cell_value(r), NULL);
 		}
 		if(r->type == 2)
 		{
-			c = malloc(sizeof(Cell));
-			*c = create_const(generate_cell_value(r), NULL);
+			LOG("list");
+			**c = create_const(generate_cell_value(r), NULL);
 		}
-		c = c->next;
+		c = &(*c)->next;
 		r = r->next;
+		LOG_GROUP_END_MSG("Gen Loop Done");
 	}
+	LOG_GROUP_END_MSG("Gen Done");
+	return gen;
 }
 
 void free_cells(Cell *cell)
@@ -196,57 +211,55 @@ int all_tokens(Tokenizer *t, Token **toks)
 }
 
 
-void parse_expr(int *size, Token **toks, ParserCell *root)
+ParserCell *parse_expr(int *size, Token **toks)
 {
-	while((**toks).type != TT_SC)
+	ParserCell *root = malloc(sizeof(ParserCell));
+	LOG_GROUP_BEGIN_MSG("parse -> expr");
+	if((**toks).type == TT_OP)
 	{
-		LOG("while -> loop");
-		if((**toks).type == TT_OP)
+		LOG("op");
+		++*toks; --*size;
+		root->next = NULL;
+		root->type = 2;
+		root->list.data = malloc(0);
+		root->list.len = 0;
+		while((**toks).type != TT_CP)
 		{
-			LOG("op");
-			++*toks; --*size;
-			ParserCell *l = malloc(sizeof(ParserCell));
-			root->next = l;
-			root = l;
-			root->type = 2;
-			root->list.data = malloc(0);
-			root->list.len = 0;
-			while((**toks).type != TT_CP)
-			{
-				root->list.data = realloc(root->list.data, sizeof(ParserCell) * ++root->list.len);
-				parse_expr(size, toks, &root->list.data[root->list.len-1]);
-			} ++*toks; --*size;
+			root->list.data = realloc(root->list.data, sizeof(ParserCell*) * ++root->list.len);
+			root->list.data[root->list.len-1] = parse_expr(size, toks);
 		}
-		if((**toks).type == TT_VAR)
-		{
-			LOG("var");
-			ParserCell *l = malloc(sizeof(ParserCell));
-			root->next = l;
-			root = l;
-			root->next = NULL;
-			root->type = 0;
-			root->name = malloc(strlen((**toks).val) + 1);
-			strcpy(root->name, (**toks).val);
-			++*toks; --*size;
-		}
-		if((**toks).type == TT_NUM)
-		{
-			LOG("num");
-			ParserCell *l = malloc(sizeof(ParserCell));
-			root->next = l;
-			root = l;
-			root->next = NULL;
-			root->type = 1;
-			root->number = atof((**toks).val);
-			++*toks; --*size;
-		}
-	} ++*toks; --*size;
-	LOGF("-> end.\n=> '%s' (%d) ->", (**toks).val, *size)
+		++*toks; --*size;
+		LOGF("end list. len: %d", root->list.len);
+	}
+	else if((**toks).type == TT_VAR)
+	{
+		LOG("var");
+		root->next = NULL;
+		root->type = 0;
+		root->name = malloc(strlen((**toks).val) + 1);
+		strcpy(root->name, (**toks).val);
+		++*toks; --*size;
+	}
+	else if((**toks).type == TT_NUM)
+	{
+		LOGF("num: '%s'", (**toks).val);
+		root->next = NULL;
+		root->type = 1;
+		LOGF("atof res: %f",atof((**toks).val))
+		root->number = atof((**toks).val);
+		LOGF("number: %f", root->number)
+		++*toks; --*size;
+	}
+	if((**toks).type == TT_SC) { root->next = NULL; ++*toks; --*size; }
+	else                         root->next = parse_expr(size, toks);
+	LOGF("-> 0x%x -> end.", root)
+	LOG_GROUP_END_MSGF("next: '%s' (%d) ->", (**toks).val, *size)
+	return root;
 }
 
 ParserCell *parse(int *size, Token **toks)
 {
-	LOG("parse ->")
+	LOG_GROUP_BEGIN_MSG("parse ->")
 	if((**toks).type == TT_VAR)
 	{
 		LOG("parse -> if")
@@ -257,7 +270,8 @@ ParserCell *parse(int *size, Token **toks)
 		++*toks; --*size;
 		++*toks; --*size; // =
 		LOG("Parse if -> expression ->");
-		parse_expr(size, toks, l);
+		l->next = parse_expr(size, toks);
+		LOG_GROUP_END_MSG("done.");
 		return l;
 	}
 }
