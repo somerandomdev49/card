@@ -31,22 +31,21 @@ int main(int argc, char **argv)
 	Tokenizer t = (Tokenizer){str};
 	Token *toks;
 	int size = all_tokens(&t, &toks);
+	int size2 = size;
 	free(str);
 
 	for(int i=0;i<size;i++)
-	{
 		printf("'%s'\n", toks[i].val);
-	}
-	
-	Cell c01, c02;
-	c01	= create_cell(&card__add, &c02);
-	c02 = create_cell(&card__print, NULL);
-	
-	Value input = create_list(2);
-	input.list.data[0] = create_number(2);
-	input.list.data[1] = create_number(5);
-	
-	eval(input, &c01);
-	free(input.list.data);
+
+	ParserCell *ps = parse(&size, &toks);
+	toks -= size2 - 1;
+	for(int i=0;i<size;i++) free(toks[i].val);
+	display_parser_cells(ps);
+
+	Cell *c = generate_cells(ps);
+	free_parser_cells(ps);
+
+	eval(create_number(argc), c);
+	free_cells(c);
 	return 0;
 }

@@ -7,6 +7,7 @@ Value card__print(Value v)
 	if(v.type == 1) printf("[List]\n");
 	return v; // look what i found:   \._./  \;-;/ \;o;/
 }
+
 #define __CARD_STDLIB_OPERATOR_DEFINE(name, op)\
 	Value card__##name(Value v)\
 	{\
