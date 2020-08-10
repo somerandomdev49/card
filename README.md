@@ -10,4 +10,4 @@ main =
 Just `make`. Or `make leak` for memory leak checking.
 
 ## Running:
-Ru with `./main`. For now it just reads `example.card`.
+Run with `./main <filename>`.
