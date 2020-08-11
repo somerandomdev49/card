@@ -2,16 +2,16 @@
 #define CARD_DEBUG_H
 int LOG_INDENT = 0;
 #ifdef DEBUG
-#define LOG_GROUP_BEGIN()                                      LOG_INDENT++;
-#define LOG_GROUP_BEGIN_MSG(x)        { LOGF("/ %s", x);           LOG_INDENT++;  }
-#define LOG_GROUP_BEGIN_MSGF(x, ...)   { LOGF("/ " x, __VA_ARGS__); LOG_INDENT++;  }
-#define LOG_GROUP_END()           LOG_INDENT--;                             
-#define LOG_GROUP_END_MSG(x)        { LOG_INDENT--; LOGF("\\ %s", x);            }
-#define LOG_GROUP_END_MSGF(x, ...)   { LOG_INDENT--; LOGF("\\ " x, __VA_ARGS__);  }
-#define LOG(x)        { for(int i=0;i<LOG_INDENT;++i)printf("|   "); puts(x); }
-#define LOGNONL(x)          printf(x);
-#define LOGC(c)          putc(c, stdout);
-#define LOGF(x, ...)   { for(int i=0;i<LOG_INDENT;++i)printf("|   "); printf(x "\n", __VA_ARGS__); }
+#define LOG_GROUP_BEGIN()                                         LOG_INDENT++;
+#define LOG_GROUP_BEGIN_MSG(x)       { LOGF("/ %s", x);           LOG_INDENT++;  }
+#define LOG_GROUP_BEGIN_MSGF(x, ...) { LOGF("/ " x, __VA_ARGS__); LOG_INDENT++;  }
+#define LOG_GROUP_END()                LOG_INDENT--;                             
+#define LOG_GROUP_END_MSG(x)         { LOG_INDENT--; LOGF("\\ %s", x);           }
+#define LOG_GROUP_END_MSGF(x, ...)   { LOG_INDENT--; LOGF("\\ " x, __VA_ARGS__); }
+#define LOG(x)                       { for(int i=0;i<LOG_INDENT;++i)printf("|   "); puts(x); }
+#define LOGNONL(x)                     printf(x);
+#define LOGC(c)                        putc(c, stdout);
+#define LOGF(x, ...)                 { for(int i=0;i<LOG_INDENT;++i)printf("|   "); printf(x "\n", __VA_ARGS__); }
 #else
 #define LOG_GROUP_BEGIN()       ;{};
 #define LOG_GROUP_BEGIN_MSG(x)      ;{};

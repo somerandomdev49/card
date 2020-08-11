@@ -1,3 +1,4 @@
+// #define DEBUG
 #include "card.h"
 #include "card_stdlib.h"
 #include "card_parser.h"
@@ -26,7 +27,7 @@ int main(int argc, char **argv)
 	// char str[strlen(src) + 1]; strcpy(str, src);
 	char *str = read(argv[1]);
 	if(!str) ERROR("Could not read the file :(\n");
-	#if DEBUG
+	#ifdef DEBUG
 	printf("%s", str);
 	#endif
 
@@ -36,7 +37,7 @@ int main(int argc, char **argv)
 	int size2 = size;
 	free(str);
 
-	#if DEBUG
+	#ifdef DEBUG
 	for(int i=0;i<size;i++)
 		LOGF("'%s'", toks[i].val);
 	#endif
@@ -46,20 +47,27 @@ int main(int argc, char **argv)
 	LOG_INDENT = 0;
 	toks -= size2 - 1;
 	LOG("-=------------ FREE TOKS ------------=-");
-	for(int i=0;i<size;i++) free(toks[i].val);
+	LOGF("size: %d", size2);
+	for(int i=0;i<size2;i++)
+	{
+		LOGF("Free tok %d at %d", toks[i].type, i);
+		if(toks[i].type == TT_VAR || toks[i].type == TT_NUM)
+			free(toks[i].val);
+	}
+	free(toks);
 	LOG("-=------------ DISPLAY ------------=-");
-	#if DEBUG
+	#ifdef DEBUG
 	display_parser_cells(ps);
 	#endif
 
 	LOG("-=------------ GEN CELLS ------------=-");
-	Cell *c = generate_cells(ps->next);
+	Cell *c = generate_cells(ps->next, NULL);
 	LOG("-=------------ FREE PARSE ------------=-");
-	FILE *nullout = fopen("/dev/null", "w");
-	FILE *tmpout = stdout;
-	stdout = nullout;
+	//FILE *nullout = fopen("/dev/null", "w");
+	//FILE *tmpout = stdout;
+	//stdout = nullout;
 	free_parser_cells(ps);
-	stdout = tmpout;
+	//stdout = tmpout;
 
 	LOG("-=------------ DISPLAY ------------=-");
 	show_cells(c);

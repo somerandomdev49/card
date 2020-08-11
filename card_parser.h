@@ -18,7 +18,7 @@ typedef struct { char *input; } Tokenizer;
 enum
 {
 	TT_VAR, TT_NUM, TT_EOF, TT_ERR,
-	TT_OP, TT_CP, TT_EQ, TT_SC
+	TT_OP, TT_CP, TT_EQ, TT_SC, TT_DT
 };
 
 void free_parser_cells(ParserCell *root)
@@ -36,6 +36,7 @@ void free_parser_cells(ParserCell *root)
 		if(tmp->type == 2)
 		{
 			for(int i = 0; i < tmp->list.len; ++i) free_parser_cells(tmp->list.data[i]);
+			free(tmp->list.data);
 		}
 		LOG("done freeing info");
 		LOGF("tmp: 0x%x", tmp)
@@ -76,7 +77,7 @@ void display_parser_cells(ParserCell *root)
 	LOG("display end");
 }
 
-Value generate_cell_value(ParserCell *ps)
+Value generate_cell_value(ParserCell *ps, FunctionContext *fc)
 {
 	if(ps->type == 0)
 	{
@@ -89,14 +90,22 @@ Value generate_cell_value(ParserCell *ps)
 	if(ps->type == 2)
 	{
 		Value v = create_list(ps->list.len);
-		for(size_t i=0;i<ps->list.len;i++) v.list.data[i] = generate_cell_value(ps->list.data[i]);
+		for(size_t i=0;i<ps->list.len;i++) v.list.data[i] = generate_cell_value(ps->list.data[i], fc);
 		return v;
+	}
+	if(ps->type == 3)
+	{
+		if(strcmp(ps->name, "print") == 0) return create_native_function(card__print);
+		if(strcmp(ps->name, "add") == 0) return create_native_function(card__add);
+		if(strcmp(ps->name, "map") == 0) return create_native_function(card__map);
+		if(strcmp(ps->name, "half") == 0) return create_native_function(card__half);
+		// TODO: user defined functions...
 	}
 }
 
 void show_cells(Cell *r)
 {
-	#if DEBUG
+	#ifdef DEBUG
 	LOG_GROUP_BEGIN_MSG("Cell:");
 	if(r->is_c) { LOGNONL("Constant "); display_value(&r->c); LOGC('\n'); }
 	else LOGF("Func: %s", r->f == &card__print ? "print" : "add");
@@ -105,7 +114,7 @@ void show_cells(Cell *r)
 	if(r->next) show_cells(r->next);
 }
 
-Cell *generate_cells(ParserCell *r)
+Cell *generate_cells(ParserCell *r, FunctionContext *fc)
 {
 	LOG_GROUP_BEGIN_MSG("Gen:");
 	Cell *gen;
@@ -129,12 +138,17 @@ Cell *generate_cells(ParserCell *r)
 		if(r->type == 1)
 		{
 			LOG("number");
-			**c = create_const(generate_cell_value(r), NULL);
+			**c = create_const(generate_cell_value(r, fc), NULL);
 		}
 		if(r->type == 2)
 		{
 			LOG("list");
-			**c = create_const(generate_cell_value(r), NULL);
+			**c = create_const(generate_cell_value(r, fc), NULL);
+		}
+		if(r->type == 3)
+		{
+			LOG("func");
+			**c = create_const(generate_cell_value(r, fc), NULL);
 		}
 		c = &(*c)->next;
 		r = r->next;
@@ -142,18 +156,6 @@ Cell *generate_cells(ParserCell *r)
 	}
 	LOG_GROUP_END_MSG("Gen Done");
 	return gen;
-}
-
-void free_cells(Cell *cell)
-{
-	Cell *tmp;
-	while(cell != NULL)
-	{
-		tmp = cell;
-		cell = cell->next;
-		if(tmp->is_c) if(tmp->c.type == 2) free(tmp->c.list.data);
-		free(tmp);
-	}
 }
 
 Token next_token(Tokenizer *t)
@@ -196,6 +198,10 @@ Token next_token(Tokenizer *t)
 	if((!IS_EOF(*t->input)) && *t->input == ')') {++t->input; return (Token){TT_CP, ")"}; };
 	if((!IS_EOF(*t->input)) && *t->input == '=') {++t->input; return (Token){TT_EQ, "="}; };
 	if((!IS_EOF(*t->input)) && *t->input == ';') {++t->input; return (Token){TT_SC, ";"}; };
+	if((!IS_EOF(*t->input)) && *t->input == '.') {++t->input; return (Token){TT_DT, "."}; };
+
+	printf("Unexpected character '%c'\n", *t->input);
+	ERROR("Terminating...");
 }
 
 int all_tokens(Tokenizer *t, Token **toks)
