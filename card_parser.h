@@ -11,14 +11,14 @@ typedef struct Token { int type; char *val; } Token;
 typedef struct ParserCell
 {
 	int type;
-	union { double number; char *name; struct { size_t len; struct ParserCell **data; } list; };
+	union { double number; char *name; struct { size_t len; struct ParserCell **data; } list; struct ParserCell *cell; };
 	struct ParserCell *next;
 } ParserCell;
 typedef struct { char *input; } Tokenizer;
 enum
 {
-	TT_VAR, TT_NUM, TT_EOF, TT_ERR,
-	TT_OP, TT_CP, TT_EQ, TT_SC, TT_DT
+	TT_VAR, TT_NUM, TT_EOF, TT_ERR, TT_OS,
+	TT_OP, TT_CP, TT_EQ, TT_SC, TT_DT, TT_CS
 };
 
 void free_parser_cells(ParserCell *root)
@@ -77,44 +77,40 @@ void display_parser_cells(ParserCell *root)
 	LOG("display end");
 }
 
-Value generate_cell_value(ParserCell *ps, FunctionContext *fc)
+Cell *generate_cells(ParserCell *r);
+Value generate_cell_value(ParserCell *ps)
 {
 	if(ps->type == 0)
 	{
-		ERROR("A name is not a value :(\n");
+		LOGF("GEN CELL VALUE: FUNC0 = USER %s", ps->name);
+		return create_user_function(ps->name);
 	}
 	if(ps->type == 1)
 	{
 		return create_number(ps->number);
 	}
+	if(ps->type == 4)
+	{
+		return create_cell_value(generate_cells(ps->cell));
+	}
 	if(ps->type == 2)
 	{
 		Value v = create_list(ps->list.len);
-		for(size_t i=0;i<ps->list.len;i++) v.list.data[i] = generate_cell_value(ps->list.data[i], fc);
+		for(size_t i=0;i<ps->list.len;i++) v->list.data[i] = generate_cell_value(ps->list.data[i]);
 		return v;
 	}
 	if(ps->type == 3)
 	{
+		LOGF("GEN CELL VALUE: FUNC3 %s", ps->name);
 		if(strcmp(ps->name, "print") == 0) return create_native_function(card__print);
 		if(strcmp(ps->name, "add") == 0) return create_native_function(card__add);
 		if(strcmp(ps->name, "map") == 0) return create_native_function(card__map);
 		if(strcmp(ps->name, "half") == 0) return create_native_function(card__half);
-		// TODO: user defined functions...
+		return create_user_function(ps->name);
 	}
 }
 
-void show_cells(Cell *r)
-{
-	#ifdef DEBUG
-	LOG_GROUP_BEGIN_MSG("Cell:");
-	if(r->is_c) { LOGNONL("Constant "); display_value(&r->c); LOGC('\n'); }
-	else LOGF("Func: %s", r->f == &card__print ? "print" : "add");
-	LOG_GROUP_END_MSG("done");
-	#endif
-	if(r->next) show_cells(r->next);
-}
-
-Cell *generate_cells(ParserCell *r, FunctionContext *fc)
+Cell *generate_cells(ParserCell *r)
 {
 	LOG_GROUP_BEGIN_MSG("Gen:");
 	Cell *gen;
@@ -122,33 +118,36 @@ Cell *generate_cells(ParserCell *r, FunctionContext *fc)
 	while(r != NULL)
 	{
 		*c = malloc(sizeof(Cell));
-		LOG_GROUP_BEGIN_MSG("Gen Loop:");
+		LOG_GROUP_BEGIN_MSGF("Gen Loop For %p:", c);
 		if(r->type == 0)
 		{
 			LOGF("name: %s", r->name);
-			if(strcmp(r->name, "print") == 0)
-			{
-				**c = create_cell(*card__print, NULL);
-			}
-			if(strcmp(r->name, "add") == 0) 
-			{
-				**c = create_cell(*card__add, NULL);
-			}
+			/**/ if(strcmp(r->name, "print") == 0) **c = create_cell(*card__print, NULL);
+			else if(strcmp(r->name, "add") == 0) **c = create_cell(*card__add, NULL);
+			else if(strcmp(r->name, "sub") == 0) **c = create_cell(*card__sub, NULL);
+			else if(strcmp(r->name, "mul") == 0) **c = create_cell(*card__mul, NULL);
+			else if(strcmp(r->name, "div") == 0) **c = create_cell(*card__div, NULL);
+			else if(strcmp(r->name, "map") == 0) **c = create_cell(*card__map, NULL);
+			else if(strcmp(r->name, "head") == 0) **c = create_cell(*card__head, NULL);
+			else if(strcmp(r->name, "tail") == 0) **c = create_cell(*card__tail, NULL);
+			else if(strcmp(r->name, "len") == 0) **c = create_cell(*card__len, NULL);
+			else if(strcmp(r->name, "if") == 0) **c = create_cell(*card__if, NULL);
+			else **c = create_const(generate_cell_value(r), NULL);
 		}
-		if(r->type == 1)
+		if(r->type == 1) // TODO: make if with ORs here.
 		{
 			LOG("number");
-			**c = create_const(generate_cell_value(r, fc), NULL);
+			**c = create_const(generate_cell_value(r), NULL);
 		}
 		if(r->type == 2)
 		{
 			LOG("list");
-			**c = create_const(generate_cell_value(r, fc), NULL);
+			**c = create_const(generate_cell_value(r), NULL);
 		}
 		if(r->type == 3)
 		{
 			LOG("func");
-			**c = create_const(generate_cell_value(r, fc), NULL);
+			**c = create_const(generate_cell_value(r), NULL);
 		}
 		c = &(*c)->next;
 		r = r->next;
@@ -157,6 +156,19 @@ Cell *generate_cells(ParserCell *r, FunctionContext *fc)
 	LOG_GROUP_END_MSG("Gen Done");
 	return gen;
 }
+
+
+void show_cells(Cell *r)
+{
+	#ifdef DEBUG
+	LOG_GROUP_BEGIN_MSG("Cell:");
+	if(r->is_c) { LOGNONL("Constant "); display_value(r->c); LOGC('\n'); }
+	else LOGF("Func: %s", r->f == &card__print ? "print" : "add");
+	LOG_GROUP_END_MSG("done");
+	#endif
+	if(r->next) show_cells(r->next);
+}
+
 
 Token next_token(Tokenizer *t)
 {
@@ -196,6 +208,8 @@ Token next_token(Tokenizer *t)
 
 	if((!IS_EOF(*t->input)) && *t->input == '(') {++t->input; return (Token){TT_OP, "("}; };
 	if((!IS_EOF(*t->input)) && *t->input == ')') {++t->input; return (Token){TT_CP, ")"}; };
+	if((!IS_EOF(*t->input)) && *t->input == ']') {++t->input; return (Token){TT_OS, "["}; };
+	if((!IS_EOF(*t->input)) && *t->input == '[') {++t->input; return (Token){TT_CS, "]"}; };
 	if((!IS_EOF(*t->input)) && *t->input == '=') {++t->input; return (Token){TT_EQ, "="}; };
 	if((!IS_EOF(*t->input)) && *t->input == ';') {++t->input; return (Token){TT_SC, ";"}; };
 	if((!IS_EOF(*t->input)) && *t->input == '.') {++t->input; return (Token){TT_DT, "."}; };
@@ -221,6 +235,7 @@ ParserCell *parse_expr(int *size, Token **toks)
 {
 	ParserCell *root = malloc(sizeof(ParserCell));
 	LOG_GROUP_BEGIN_MSG("parse -> expr");
+	
 	if((**toks).type == TT_OP)
 	{
 		LOG("op");

@@ -43,7 +43,13 @@ int main(int argc, char **argv)
 	#endif
 
 	LOG("-=------------ PARSE ------------=-");
-	ParserCell *ps = parse(&size, &toks);
+	ParserCell**parsed_funcs = malloc(0);
+	int parsed_func_size = 0;
+	while(toks[0].type != TT_EOF)
+	{
+		parsed_funcs = realloc(parsed_funcs, (++parsed_func_size) * sizeof(ParserCell*));
+		parsed_funcs[parsed_func_size-1] = parse(&size, &toks);
+	}
 	LOG_INDENT = 0;
 	toks -= size2 - 1;
 	LOG("-=------------ FREE TOKS ------------=-");
@@ -57,24 +63,42 @@ int main(int argc, char **argv)
 	free(toks);
 	LOG("-=------------ DISPLAY ------------=-");
 	#ifdef DEBUG
-	display_parser_cells(ps);
+	for(int i=0;i<parsed_func_size;++i) display_parser_cells(parsed_funcs[i]);
 	#endif
-
 	LOG("-=------------ GEN CELLS ------------=-");
-	Cell *c = generate_cells(ps->next, NULL);
-	LOG("-=------------ FREE PARSE ------------=-");
-	//FILE *nullout = fopen("/dev/null", "w");
-	//FILE *tmpout = stdout;
-	//stdout = nullout;
-	free_parser_cells(ps);
-	//stdout = tmpout;
+	Cell**funcs = malloc(0);
+	int func_size = 0; 
+	for(int i=0;i<parsed_func_size;++i)
+	{ 
+		funcs = realloc(funcs, (++func_size) * sizeof(Cell*));
+		funcs[func_size-1] = generate_cells(parsed_funcs[i]->next);
+	}
 
 	LOG("-=------------ DISPLAY ------------=-");
-	show_cells(c);
+	for(int i=0;i<func_size;++i) show_cells(funcs[i]);
+
 	LOG("-=------------ EVAL ------------=-");
-	Value v = eval(create_number(argc), c);
-	// display_value(&v); putchar('\n');
+	
+	FunctionContext fc = (FunctionContext){func_size, malloc(func_size*sizeof(Cell*))};
+	for(int i=0;i<func_size;++i)
+	{
+		LOGF("%s -> %p", parsed_funcs[i]->name, funcs[i]);
+		fc.funcs[i] = (struct FuncDecl){parsed_funcs[i]->name, funcs[i]};
+	}
+
+	Value v = eval(create_number(argc), get_func_in(&fc, "main"), &fc);
+	free_value(v);
 	LOG("-=------------ FREE ------------=-");
-	free_cells(c);
+	for(int i=0;i<func_size;++i) { LOGF("Free function: %s", parsed_funcs[i]->name); free_cells(funcs[i]); }
+	free(funcs);
+
+	LOG("-=------------ FREE PARSE ------------=-");
+	for(int i=0;i<parsed_func_size;++i) free_parser_cells(parsed_funcs[i]);
+	free(parsed_funcs);
+
+	LOG("-=------------ FUNC CTX ------------=-");
+	// free(fc.funcs);
+
+	LOG("-=------------ EXIT ------------=-");
 	return 0;
 }

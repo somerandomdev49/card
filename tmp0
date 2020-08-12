@@ -1,0 +1,108 @@
+main = mylist add print;
+mylist = (1; 2; 3; 4;);
+'main'
+'='
+'mylist'
+'add'
+'print'
+';'
+'mylist'
+'='
+'('
+'1'
+';'
+'2'
+';'
+'3'
+';'
+'4'
+';'
+')'
+';'
+'<eof>'
+-=------------ PARSE ------------=-
+/ parse ->
+|   parse -> if
+|   Parse if -> expression ->
+|   / parse -> expr
+|   |   var
+|   |   / parse -> expr
+|   |   |   var
+|   |   |   / parse -> expr
+|   |   |   |   var
+|   |   |   |   -> 0xb9eb6f10 -> end.
+|   |   |   \ next: 'mylist' (14) ->
+|   |   |   -> 0xb9eb6ec0 -> end.
+|   |   \ next: 'mylist' (14) ->
+|   |   -> 0xb9eb6e70 -> end.
+|   \ next: 'mylist' (14) ->
+\ done.
+/ parse ->
+|   parse -> if
+|   Parse if -> expression ->
+|   / parse -> expr
+|   |   op
+|   |   / parse -> expr
+|   |   |   num: '1'
+|   |   |   atof res: 1.000000
+|   |   |   number: 1.000000
+|   |   |   -> 0xb9eb7000 -> end.
+|   |   \ next: '2' (9) ->
+|   |   / parse -> expr
+|   |   |   num: '2'
+|   |   |   atof res: 2.000000
+|   |   |   number: 2.000000
+|   |   |   -> 0xb9eb7030 -> end.
+|   |   \ next: '3' (7) ->
+|   |   / parse -> expr
+|   |   |   num: '3'
+|   |   |   atof res: 3.000000
+|   |   |   number: 3.000000
+|   |   |   -> 0xb9eb7060 -> end.
+|   |   \ next: '4' (5) ->
+|   |   / parse -> expr
+|   |   |   num: '4'
+|   |   |   atof res: 4.000000
+|   |   |   number: 4.000000
+|   |   |   -> 0xb9eb70c0 -> end.
+|   |   \ next: ')' (3) ->
+|   |   end list. len: 4
+|   |   -> 0xb9eb6fb0 -> end.
+|   \ next: '<eof>' (1) ->
+\ done.
+-=------------ DISPLAY ------------=-
+display
+root->next.ptr: 0xb9eb6e70
+0: 'main'
+ root->next.ptr: 0xb9eb6ec0
+ 0: 'mylist'
+  root->next.ptr: 0xb9eb6f10
+  0: 'add'
+   root->next.ptr: 0x0
+   0: 'print'
+display end
+display
+root->next.ptr: 0xb9eb6fb0
+0: 'mylist'
+ root->next.ptr: 0x0
+ 2: (1: 1.000000 1: 2.000000 1: 3.000000 1: 4.000000 )
+display end
+-=------------ GEN CELLS ------------=-
+/ Gen:
+|   / Gen Loop For 0x7fffc2380bf8:
+|   |   name: mylist
+|   |   GEN CELL VALUE: FUNC0 = USER mylist
+|   \ Gen Loop Done
+|   / Gen Loop For 0x7fffb9eb7108:
+|   |   name: add
+|   \ Gen Loop Done
+|   / Gen Loop For 0x7fffb9eb7138:
+|   |   name: print
+|   \ Gen Loop Done
+\ Gen Done
+/ Gen:
+|   / Gen Loop For 0x7fffc2380bf8:
+|   |   list
+|   \ Gen Loop Done
+\ Gen Done
+-=---

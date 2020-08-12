@@ -1,0 +1,147 @@
+main = mylist add print;
+mylist = (1; 2; 3; 4;);
+'main'
+'='
+'mylist'
+'add'
+'print'
+';'
+'mylist'
+'='
+'('
+'1'
+';'
+'2'
+';'
+'3'
+';'
+'4'
+';'
+')'
+';'
+'<eof>'
+-=------------ PARSE ------------=-
+/ parse ->
+|   parse -> if
+|   Parse if -> expression ->
+|   / parse -> expr
+|   |   var
+|   |   / parse -> expr
+|   |   |   var
+|   |   |   / parse -> expr
+|   |   |   |   var
+|   |   |   |   -> 0x60 -> end.
+|   |   |   \ next: 'mylist' (14) ->
+|   |   |   -> 0x40 -> end.
+|   |   \ next: 'mylist' (14) ->
+|   |   -> 0x20 -> end.
+|   \ next: 'mylist' (14) ->
+\ done.
+/ parse ->
+|   parse -> if
+|   Parse if -> expression ->
+|   / parse -> expr
+|   |   op
+|   |   / parse -> expr
+|   |   |   num: '1'
+|   |   |   atof res: 1.000000
+|   |   |   number: 1.000000
+|   |   |   -> 0xc0 -> end.
+|   |   \ next: '2' (9) ->
+|   |   / parse -> expr
+|   |   |   num: '2'
+|   |   |   atof res: 2.000000
+|   |   |   number: 2.000000
+|   |   |   -> 0xe0 -> end.
+|   |   \ next: '3' (7) ->
+|   |   / parse -> expr
+|   |   |   num: '3'
+|   |   |   atof res: 3.000000
+|   |   |   number: 3.000000
+|   |   |   -> 0x120 -> end.
+|   |   \ next: '4' (5) ->
+|   |   / parse -> expr
+|   |   |   num: '4'
+|   |   |   atof res: 4.000000
+|   |   |   number: 4.000000
+|   |   |   -> 0x100 -> end.
+|   |   \ next: ')' (3) ->
+|   |   end list. len: 4
+|   |   -> 0xa0 -> end.
+|   \ next: '<eof>' (1) ->
+\ done.
+-=------------ FREE TOKS ------------=-
+size: 20
+Free tok 0 at 0
+Free tok 6 at 1
+Free tok 0 at 2
+Free tok 0 at 3
+Free tok 0 at 4
+Free tok 7 at 5
+Free tok 0 at 6
+Free tok 6 at 7
+Free tok 4 at 8
+Free tok 1 at 9
+Free tok 7 at 10
+Free tok 1 at 11
+Free tok 7 at 12
+Free tok 1 at 13
+Free tok 7 at 14
+Free tok 1 at 15
+Free tok 7 at 16
+Free tok 5 at 17
+Free tok 7 at 18
+Free tok 2 at 19
+-=------------ DISPLAY ------------=-
+display
+root->next.ptr: 0x20
+0: 'main'
+ root->next.ptr: 0x40
+ 0: 'mylist'
+  root->next.ptr: 0x60
+  0: 'add'
+   root->next.ptr: 0x0
+   0: 'print'
+display end
+display
+root->next.ptr: 0xa0
+0: 'mylist'
+ root->next.ptr: 0x0
+ 2: (1: 1.000000 1: 2.000000 1: 3.000000 1: 4.000000 )
+display end
+-=------------ GEN CELLS ------------=-
+/ Gen:
+|   / Gen Loop For 0x7fffea685898:
+|   |   name: mylist
+|   |   GEN CELL VALUE: FUNC0 = USER mylist
+|   \ Gen Loop Done
+|   / Gen Loop For 0x602000000178:
+|   |   name: add
+|   \ Gen Loop Done
+|   / Gen Loop For 0x602000000198:
+|   |   name: print
+|   \ Gen Loop Done
+\ Gen Done
+/ Gen:
+|   / Gen Loop For 0x7fffea685898:
+|   |   list
+|   \ Gen Loop Done
+\ Gen Done
+-=------------ DISPLAY ------------=-
+/ Cell:
+|   Constant -32: 
+\ done
+/ Cell:
+|   Func: add
+\ done
+/ Cell:
+|   Func: print
+\ done
+/ Cell:
+|   Constant 1: (0: 1.000000 0: 2.000000 0: 3.000000 0: 4.000000 )
+\ done
+-=------------ EVAL ------------=-
+° -> 0x602000000160
+mylist -> 0x6020000001c0
+Finding function: main
+[get_func_in]: Function not found
