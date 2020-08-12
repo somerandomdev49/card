@@ -1,6 +1,6 @@
 # TODO list.
 
-- [x] User-defined functions
+- [ ] User-defined functions
 - [ ] Arguments, unwrapping input list to arguments, rest.
 - [ ] Strings.
 - [ ] Macros?
